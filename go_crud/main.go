@@ -46,12 +46,53 @@ func deleteMovie(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Successfully deleted")
 }
 
-func getMovie(w http.ResponseWriter, r *http.Request){
+func getMovie(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	params:=mux.Vars(r)
-	
+	params := mux.Vars(r)
+	id := params["id"]
+	id_num, err := strconv.Atoi(id)
+	if err != nil {
+		fmt.Println("Conversion failed:", err)
+		return
+	}
+
+	json.NewEncoder(w).Encode(movies[id_num-1])
+
+}
+
+func createMovie(w http.ResponseWriter, r *http.Request) {
+	var new_movie Movie
+
+	err := json.NewDecoder(r.Body).Decode(&new_movie)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	movies = append(movies, new_movie)
+	fmt.Fprintf(w, "Received movie: %+v", new_movie)
+}
+
+func updateMovie(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
+	id_num, err := strconv.Atoi(id)
+
+	if err != nil {
+		fmt.Println("Conversion failed:", err)
+		return
+	}
+
+	var update_movie Movie
+
+	json.NewDecoder(r.Body).Decode(&update_movie)
+
+	movies[id_num-1] = update_movie
+
+	fmt.Fprintf(w, "Updated successfully")
+
 }
 
 func main() {
@@ -63,8 +104,8 @@ func main() {
 	movies = append(movies, Movie{ID: "4", Isbn: "432902", Title: "Movie Four", Director: &Director{Firstname: "James", Lastname: "Cameron"}})
 	router.HandleFunc("/movies", getMovies).Methods("GET")
 	router.HandleFunc("/movies/{id}", getMovie).Methods("GET")
-	// router.HandleFunc("/movies", createMovie).Methods("POST")
-	// router.HandleFunc("/movies/{id}", updateMovie).Methods("PUT")
+	router.HandleFunc("/movies", createMovie).Methods("POST")
+	router.HandleFunc("/movies/{id}", updateMovie).Methods("PUT")
 	router.HandleFunc("/movies/{id}", deleteMovie).Methods("DELETE")
 
 	port := ":8080"
